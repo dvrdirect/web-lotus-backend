@@ -1,0 +1,25 @@
+{
+  "name": "web-lotus-backend",
+  "version": "1.0.0",
+  "description": "Backend",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "nodemon index.js",
+    "start": "node index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dvrdirect/web-lotus-backend.git"
+  },
+  "keywords": [],
+  "author": "dvrdirect",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/dvrdirect/web-lotus-backend/issues"
+  },
+  "homepage": "https://github.com/dvrdirect/web-lotus-backend#readme",
+  "devDependencies": {
+    "nodemon": "^3.1.11"
+  }
+}
