@@ -24,6 +24,13 @@ const userSchema = new Schema(
       maxlength: 30,
       trim: true,
     },
+    phone: {
+      type: String,
+      trim: true,
+    },
+    birthdate: {
+      type: String,
+    },
   },
   {
     timestamps: true,

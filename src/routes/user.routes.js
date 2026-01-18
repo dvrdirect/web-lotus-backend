@@ -17,12 +17,10 @@ router.post("/signup", async (req, res) => {
       return res.status(409).json({ error: "El correo ya está registrado" });
     const hash = await bcrypt.hash(password, 10);
     const user = await User.create({ email, password: hash, name });
-    res
-      .status(201)
-      .json({
-        message: "Usuario creado",
-        user: { email: user.email, name: user.name },
-      });
+    res.status(201).json({
+      message: "Usuario creado",
+      user: { email: user.email, name: user.name },
+    });
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
@@ -50,10 +48,35 @@ router.post("/signin", async (req, res) => {
 
 const auth = require("../middleware/auth");
 
-// GET: información del usuario conectado (correo y nombre)
+// GET: información del usuario conectado
 router.get("/me", auth, (req, res) => {
-  const { email, name } = req.user;
-  res.json({ email, name });
+  const { email, name, phone, birthdate } = req.user;
+  res.json({ email, name, phone, birthdate });
+});
+
+// PUT: actualizar datos básicos del usuario conectado
+router.put("/me", auth, async (req, res) => {
+  try {
+    const { name, phone, birthdate } = req.body;
+    if (name !== undefined) {
+      req.user.name = name;
+    }
+    if (phone !== undefined) {
+      req.user.phone = phone;
+    }
+    if (birthdate !== undefined) {
+      req.user.birthdate = birthdate;
+    }
+    const saved = await req.user.save();
+    return res.json({
+      email: saved.email,
+      name: saved.name,
+      phone: saved.phone,
+      birthdate: saved.birthdate,
+    });
+  } catch (err) {
+    return res.status(400).json({ error: err.message });
+  }
 });
 
 // GET: datos guardados por el usuario (servicios creados)

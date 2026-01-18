@@ -55,6 +55,8 @@ router.post("/google", async (req, res) => {
       user: {
         email: user.email,
         name: user.name,
+        phone: user.phone,
+        birthdate: user.birthdate,
       },
       token,
     });
