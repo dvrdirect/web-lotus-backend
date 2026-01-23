@@ -4,6 +4,44 @@ const auth = require("../middleware/auth");
 const isAdmin = require("../middleware/isAdmin");
 const { User } = require("../models");
 
+// GET /api/admin/user?email=... or ?id=...
+router.get("/user", auth, isAdmin, async (req, res) => {
+  try {
+    const { email, id } = req.query;
+
+    if (!email && !id) {
+      return res.status(400).json({ error: "email o id son obligatorios" });
+    }
+
+    const query = {};
+    if (id) {
+      query._id = id;
+    } else {
+      query.email = String(email).trim().toLowerCase();
+    }
+
+    const user = await User.findOne(query).select(
+      "name email appointmentsCount appointmentsHistory",
+    );
+
+    if (!user) {
+      return res.status(404).json({ error: "Usuario no encontrado" });
+    }
+
+    return res.json({
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        appointmentsCount: user.appointmentsCount || 0,
+        appointmentsHistory: user.appointmentsHistory || [],
+      },
+    });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
 // POST /api/admin/add-past-appointment
 router.post("/add-past-appointment", auth, isAdmin, async (req, res) => {
   try {
