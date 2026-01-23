@@ -26,7 +26,8 @@ async function sendNewUserAlert(user) {
 
     const mailOptions = {
       from: '"Lotus Spa - Sistema" <soporte@spalotus.mx>',
-      to: "soporte@spalotus.mx, reservas@spalotus.mx",
+      to: "soporte@spalotus.mx", // Primary recipient
+      cc: "reservas@spalotus.mx", // Secondary recipient via CC
       subject: "🌸 Nuevo registro en Lotus Spa",
       html: `
         <!DOCTYPE html>
