@@ -168,13 +168,20 @@ router.delete("/reservations/:id", auth, isAdmin, async (req, res) => {
       user.appointmentsCount = total;
 
       // Remove any appointmentsHistory item that matches same day and service
-      const remainingHistory = (user.appointmentsHistory || []).filter((item) => {
-        if (!item || !item.date || !item.service) return true;
-        const itemDateKey = new Date(item.date).toISOString().slice(0, 10);
-        const resDateKey = new Date(reservation.scheduledAt).toISOString().slice(0, 10);
-        // keep the item if it does not match the reservation being deleted
-        return !(itemDateKey === resDateKey && item.service === reservation.serviceName);
-      });
+      const remainingHistory = (user.appointmentsHistory || []).filter(
+        (item) => {
+          if (!item || !item.date || !item.service) return true;
+          const itemDateKey = new Date(item.date).toISOString().slice(0, 10);
+          const resDateKey = new Date(reservation.scheduledAt)
+            .toISOString()
+            .slice(0, 10);
+          // keep the item if it does not match the reservation being deleted
+          return !(
+            itemDateKey === resDateKey &&
+            item.service === reservation.serviceName
+          );
+        },
+      );
       user.appointmentsHistory = remainingHistory;
 
       await user.save();
