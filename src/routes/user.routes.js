@@ -95,4 +95,21 @@ router.get("/data", auth, async (req, res) => {
   res.json([]); // Placeholder
 });
 
+// TEST: Enviar alerta de registro manualmente (solo para pruebas)
+router.post("/test-alert", async (req, res) => {
+  try {
+    const { sendNewUserAlert } = require("../services/emailService");
+    // Datos de prueba
+    const testUser = {
+      name: "Prueba Test",
+      email: "prueba@correo.com",
+      createdAt: new Date(),
+    };
+    const result = await sendNewUserAlert(testUser);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;
