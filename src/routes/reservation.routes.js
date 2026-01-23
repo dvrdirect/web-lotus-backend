@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const { Reservation } = require("../models");
 const auth = require("../middleware/auth");
+const { sendNewUserAlert } = require("../services/emailService");
 
 // POST /api/reservations - crear una nueva reserva para el usuario autenticado
 router.post("/", auth, async (req, res) => {
@@ -19,6 +20,20 @@ router.post("/", auth, async (req, res) => {
       scheduledAt,
       notes,
     });
+
+    // Enviar alerta por email al crear una nueva reserva
+    try {
+      await sendNewUserAlert({
+        name: req.user.name || "Usuario",
+        email: req.user.email,
+        createdAt: reservation.createdAt,
+        serviceName,
+        scheduledAt,
+        notes,
+      });
+    } catch (emailErr) {
+      console.error("Error enviando alerta de reserva:", emailErr);
+    }
 
     res.status(201).json(reservation);
   } catch (err) {
@@ -53,6 +68,34 @@ router.delete("/:id", auth, async (req, res) => {
     res.json({ message: "Reserva eliminada" });
   } catch (err) {
     res.status(400).json({ error: err.message });
+  }
+});
+
+// TEST: endpoint para probar alerta de nueva reserva
+router.get("/test-alert", async (req, res) => {
+  try {
+    // Simula datos de reserva
+    const fakeReservation = {
+      name: "Test Usuario",
+      email: "test@spalotus.mx",
+      createdAt: new Date(),
+      serviceName: "Masaje de prueba",
+      scheduledAt: new Date(Date.now() + 3600 * 1000),
+      notes: "Reserva de prueba generada por /test-alert",
+    };
+    const { sendNewUserAlert } = require("../services/emailService");
+    const result = await sendNewUserAlert(fakeReservation);
+    if (result.success) {
+      res.json({
+        ok: true,
+        message: "Alerta de reserva enviada",
+        messageId: result.messageId,
+      });
+    } else {
+      res.status(500).json({ ok: false, error: result.error });
+    }
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
   }
 });
 
