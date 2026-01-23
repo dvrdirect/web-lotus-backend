@@ -145,4 +145,52 @@ router.get("/reservations", auth, isAdmin, async (req, res) => {
   }
 });
 
+// DELETE /api/admin/reservations/:id - eliminar reserva (admin only)
+router.delete("/reservations/:id", auth, isAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const reservation = await Reservation.findById(id);
+    if (!reservation) {
+      return res.status(404).json({ error: "Reserva no encontrada" });
+    }
+
+    const userId = reservation.user;
+
+    // Delete reservation
+    await Reservation.findByIdAndDelete(id);
+
+    // Recalculate user's appointmentsCount and clean history entries matching this reservation
+    const user = await User.findById(userId);
+    if (user) {
+      // Recalculate total reservations for user
+      const total = await Reservation.countDocuments({ user: user._id });
+      user.appointmentsCount = total;
+
+      // Remove any appointmentsHistory item that matches same day and service
+      const remainingHistory = (user.appointmentsHistory || []).filter((item) => {
+        if (!item || !item.date || !item.service) return true;
+        const itemDateKey = new Date(item.date).toISOString().slice(0, 10);
+        const resDateKey = new Date(reservation.scheduledAt).toISOString().slice(0, 10);
+        // keep the item if it does not match the reservation being deleted
+        return !(itemDateKey === resDateKey && item.service === reservation.serviceName);
+      });
+      user.appointmentsHistory = remainingHistory;
+
+      await user.save();
+    }
+
+    return res.json({
+      ok: true,
+      message: "Reserva eliminada correctamente",
+      data: {
+        appointmentsCount: user ? user.appointmentsCount : 0,
+        appointmentsHistory: user ? user.appointmentsHistory : [],
+      },
+    });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;
