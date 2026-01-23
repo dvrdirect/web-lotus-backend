@@ -16,9 +16,11 @@ router.post("/", auth, async (req, res) => {
 
     const reservation = await Reservation.create({
       user: req.user._id,
+      email: req.user.email,
       serviceName,
       scheduledAt,
       notes,
+      createdBy: "user",
     });
 
     // Enviar alerta por email al crear una nueva reserva
@@ -36,6 +38,18 @@ router.post("/", auth, async (req, res) => {
     }
 
     res.status(201).json(reservation);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// GET /api/reservations/my - historial del usuario autenticado
+router.get("/my", auth, async (req, res) => {
+  try {
+    const reservations = await Reservation.find({ user: req.user._id })
+      .sort({ scheduledAt: -1 })
+      .lean();
+    res.json(reservations);
   } catch (err) {
     res.status(400).json({ error: err.message });
   }

@@ -9,6 +9,11 @@ const reservationSchema = new Schema(
       ref: "User",
       required: true,
     },
+    email: {
+      type: String,
+      lowercase: true,
+      trim: true,
+    },
     serviceName: {
       type: String,
       required: true,
@@ -27,8 +32,13 @@ const reservationSchema = new Schema(
     },
     status: {
       type: String,
-      enum: ["pending", "confirmed", "cancelled"],
+      enum: ["pending", "confirmed", "cancelled", "completed"],
       default: "pending",
+    },
+    createdBy: {
+      type: String,
+      enum: ["admin", "user"],
+      default: "user",
     },
   },
   {

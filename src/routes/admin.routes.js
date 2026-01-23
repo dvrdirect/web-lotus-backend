@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 const auth = require("../middleware/auth");
 const isAdmin = require("../middleware/isAdmin");
-const { User } = require("../models");
+const { User, Reservation } = require("../models");
 
 // GET /api/admin/user?email=... or ?id=...
 router.get("/user", auth, isAdmin, async (req, res) => {
@@ -18,7 +18,7 @@ router.get("/user", auth, isAdmin, async (req, res) => {
       query._id = id;
     } else {
       // Búsqueda insensible a mayúsculas/minúsculas
-      query.email = new RegExp(`^${String(email).trim()}$`, 'i');
+      query.email = new RegExp(`^${String(email).trim()}$`, "i");
     }
 
     const user = await User.findOne(query).select(
@@ -77,6 +77,23 @@ router.post("/add-past-appointment", auth, isAdmin, async (req, res) => {
         .json({ error: "La cita ya existe para esa fecha y servicio" });
     }
 
+    const dayStart = new Date(normalizedDate);
+    dayStart.setHours(0, 0, 0, 0);
+    const dayEnd = new Date(normalizedDate);
+    dayEnd.setHours(23, 59, 59, 999);
+
+    const reservationExists = await Reservation.findOne({
+      user: user._id,
+      serviceName: service,
+      scheduledAt: { $gte: dayStart, $lte: dayEnd },
+    });
+
+    if (reservationExists) {
+      return res
+        .status(409)
+        .json({ error: "La reserva ya existe para esa fecha y servicio" });
+    }
+
     user.appointmentsHistory = user.appointmentsHistory || [];
     user.appointmentsHistory.push({
       date: normalizedDate,
@@ -86,6 +103,16 @@ router.post("/add-past-appointment", auth, isAdmin, async (req, res) => {
     });
 
     user.appointmentsCount = (user.appointmentsCount || 0) + 1;
+
+    await Reservation.create({
+      user: user._id,
+      email: user.email,
+      serviceName: service,
+      scheduledAt: normalizedDate,
+      notes,
+      status: "completed",
+      createdBy: "admin",
+    });
 
     await user.save();
 

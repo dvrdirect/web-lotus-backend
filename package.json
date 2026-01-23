@@ -6,7 +6,8 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "nodemon index.js",
-    "start": "node index.js"
+    "start": "node index.js",
+    "migrate:appointments-history": "node scripts/migrate-appointments-history.js"
   },
   "repository": {
     "type": "git",
