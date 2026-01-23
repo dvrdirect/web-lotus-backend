@@ -129,8 +129,6 @@ router.post("/add-past-appointment", auth, isAdmin, async (req, res) => {
   }
 });
 
-module.exports = router;
-
 // GET /api/admin/reservations?userId=... - listar reservas de un usuario (admin)
 router.get("/reservations", auth, isAdmin, async (req, res) => {
   try {
@@ -146,3 +144,5 @@ router.get("/reservations", auth, isAdmin, async (req, res) => {
     return res.status(500).json({ error: err.message });
   }
 });
+
+module.exports = router;
