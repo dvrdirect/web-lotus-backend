@@ -145,6 +145,31 @@ router.get("/reservations", auth, isAdmin, async (req, res) => {
   }
 });
 
+// GET /api/admin/users/:userId/reservations - listar reservas por usuario (admin)
+router.get("/users/:userId/reservations", auth, isAdmin, async (req, res) => {
+  try {
+    const { userId } = req.params;
+    if (!userId) return res.status(400).json({ error: "userId es requerido" });
+
+    const reservations = await Reservation.find({ user: userId })
+      .sort({ scheduledAt: -1 })
+      .select("_id serviceName scheduledAt notes status")
+      .lean();
+
+    const payload = reservations.map((item) => ({
+      _id: item._id,
+      date: item.scheduledAt,
+      service: item.serviceName,
+      notes: item.notes,
+      status: item.status,
+    }));
+
+    return res.json({ reservations: payload });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
 // DELETE /api/admin/reservations/:id - eliminar reserva (admin only)
 router.delete("/reservations/:id", auth, isAdmin, async (req, res) => {
   try {
