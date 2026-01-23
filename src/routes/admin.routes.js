@@ -17,7 +17,8 @@ router.get("/user", auth, isAdmin, async (req, res) => {
     if (id) {
       query._id = id;
     } else {
-      query.email = String(email).trim().toLowerCase();
+      // Búsqueda insensible a mayúsculas/minúsculas
+      query.email = new RegExp(`^${String(email).trim()}$`, 'i');
     }
 
     const user = await User.findOne(query).select(
