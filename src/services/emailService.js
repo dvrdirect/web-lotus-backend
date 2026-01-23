@@ -103,7 +103,7 @@ async function sendNewUserAlert(user) {
               <p style="color: #7a6e63; font-size: 16px; margin-top: 0;">
                 Se ha registrado un nuevo usuario en la plataforma de Lotus Spa.
               </p>
-              
+
               <div class="info-card">
                 <div class="info-row">
                   <span class="info-label">Nombre:</span>
