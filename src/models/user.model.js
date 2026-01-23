@@ -31,6 +31,29 @@ const userSchema = new Schema(
     birthdate: {
       type: String,
     },
+    appointmentsCount: {
+      type: Number,
+      default: 0,
+    },
+    appointmentsHistory: [
+      {
+        date: {
+          type: Date,
+        },
+        service: {
+          type: String,
+          trim: true,
+        },
+        notes: {
+          type: String,
+          trim: true,
+        },
+        addedByAdmin: {
+          type: Boolean,
+          default: false,
+        },
+      },
+    ],
   },
   {
     timestamps: true,
