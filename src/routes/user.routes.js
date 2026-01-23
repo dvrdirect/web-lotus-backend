@@ -3,6 +3,8 @@ const router = express.Router();
 const { User } = require("../models");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const { sendNewUserAlert } = require("../services/emailService");
+
 // POST /signup: registro de usuario
 router.post("/signup", async (req, res) => {
   try {
@@ -17,6 +19,12 @@ router.post("/signup", async (req, res) => {
       return res.status(409).json({ error: "El correo ya está registrado" });
     const hash = await bcrypt.hash(password, 10);
     const user = await User.create({ email, password: hash, name });
+
+    // Enviar notificación por email (no bloquea el registro si falla)
+    sendNewUserAlert(user).catch((err) =>
+      console.error("Error enviando email de bienvenida:", err),
+    );
+
     res.status(201).json({
       message: "Usuario creado",
       user: { email: user.email, name: user.name },
