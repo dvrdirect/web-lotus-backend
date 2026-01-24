@@ -20,10 +20,18 @@ router.post("/signup", async (req, res) => {
     const hash = await bcrypt.hash(password, 10);
     const user = await User.create({ email, password: hash, name });
 
-    // Enviar notificación por email (no bloquea el registro si falla)
-    sendNewUserAlert(user).catch((err) =>
-      console.error("Error enviando email de bienvenida:", err),
-    );
+    console.log("Nuevo usuario creado:", user.email);
+    console.log("Intentando enviar correo de notificación...");
+    try {
+      await sendNewUserAlert(user);
+    } catch (err) {
+      console.error("Error enviando email de registro:", err);
+      await User.findByIdAndDelete(user._id);
+      return res.status(500).json({
+        error:
+          "No se pudo enviar el correo de notificación. Intenta de nuevo.",
+      });
+    }
 
     res.status(201).json({
       message: "Usuario creado",

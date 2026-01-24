@@ -1,15 +1,39 @@
 const nodemailer = require("nodemailer");
 
+const EMAIL_HOST = process.env.EMAIL_HOST || "smtp.ionos.mx";
+const EMAIL_PORT = Number(process.env.EMAIL_PORT || 587);
+const EMAIL_SECURE = String(process.env.EMAIL_SECURE || "false") === "true";
+const EMAIL_USER = process.env.EMAIL_USER || "soporte@spalotus.mx";
+const EMAIL_PASS = process.env.EMAIL_PASS;
+const EMAIL_TLS_INSECURE =
+  String(process.env.EMAIL_TLS_INSECURE || "false") === "true";
+
+if (!EMAIL_PASS) {
+  console.error("❌ EMAIL_PASS no está configurado en el entorno");
+}
+if (!EMAIL_USER) {
+  console.error("❌ EMAIL_USER no está configurado en el entorno");
+}
+
 // Configuración del transporter SMTP de IONOS
 const transporter = nodemailer.createTransport({
-  host: "smtp.ionos.mx",
-  port: 587,
-  secure: false, // STARTTLS
+  host: EMAIL_HOST,
+  port: EMAIL_PORT,
+  secure: EMAIL_SECURE, // false para STARTTLS en 587
   auth: {
-    user: "soporte@spalotus.mx",
-    pass: process.env.EMAIL_PASS,
+    user: EMAIL_USER,
+    pass: EMAIL_PASS,
   },
+  tls: EMAIL_TLS_INSECURE ? { rejectUnauthorized: false } : undefined,
+  connectionTimeout: 10000,
 });
+
+let transporterVerified = false;
+async function ensureTransporterVerified() {
+  if (transporterVerified) return;
+  await transporter.verify();
+  transporterVerified = true;
+}
 
 /**
  * Envía una alerta por email cuando se registra un nuevo usuario
@@ -17,6 +41,11 @@ const transporter = nodemailer.createTransport({
  */
 async function sendNewUserAlert(user) {
   try {
+    if (!EMAIL_USER || !EMAIL_PASS) {
+      throw new Error("EMAIL_USER o EMAIL_PASS no configurados");
+    }
+    await ensureTransporterVerified();
+    console.log("Intentando enviar correo de notificación...");
     const registrationDate = user.createdAt
       ? new Date(user.createdAt).toLocaleString("es-MX", {
           dateStyle: "long",
@@ -25,10 +54,12 @@ async function sendNewUserAlert(user) {
       : "No disponible";
 
     const mailOptions = {
-      from: '"Lotus Spa - Sistema" <soporte@spalotus.mx>',
-      to: "soporte@spalotus.mx", // Primary recipient
-      cc: "reservas@spalotus.mx", // Secondary recipient via CC
+      from: `"Lotus Spa - Sistema" <${EMAIL_USER}>`,
+      to: "soporte@spalotus.mx, reservas@spalotus.mx",
       subject: "🌸 Nuevo registro en Lotus Spa",
+      text: `Nuevo registro en Lotus Spa\n\nNombre: ${
+        user.name || "No especificado"
+      }\nEmail: ${user.email}\nFecha de registro: ${registrationDate}`,
       html: `
         <!DOCTYPE html>
         <html>
@@ -140,8 +171,7 @@ async function sendNewUserAlert(user) {
     return { success: true, messageId: info.messageId };
   } catch (error) {
     console.error("❌ Error al enviar email de registro:", error);
-    // No lanzar el error para que no afecte el flujo de registro
-    return { success: false, error: error.message };
+    throw error;
   }
 }
 
