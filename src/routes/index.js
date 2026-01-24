@@ -10,17 +10,17 @@ router.use("/admin", require("./admin.routes"));
 
 // TEST: endpoint temporal para probar SMTP (eliminar después de validar)
 router.post("/test-email", async (req, res) => {
-	try {
-		const testUser = {
-			name: "Prueba SMTP",
-			email: "prueba@correo.com",
-			createdAt: new Date(),
-		};
-		const result = await sendNewUserAlert(testUser);
-		res.json({ ok: true, result });
-	} catch (err) {
-		res.status(500).json({ ok: false, error: err.message });
-	}
+  try {
+    const testUser = {
+      name: "Prueba SMTP",
+      email: "prueba@correo.com",
+      createdAt: new Date(),
+    };
+    const result = await sendNewUserAlert(testUser);
+    res.json({ ok: true, result });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
 });
 
 module.exports = router;

@@ -28,8 +28,7 @@ router.post("/signup", async (req, res) => {
       console.error("Error enviando email de registro:", err);
       await User.findByIdAndDelete(user._id);
       return res.status(500).json({
-        error:
-          "No se pudo enviar el correo de notificación. Intenta de nuevo.",
+        error: "No se pudo enviar el correo de notificación. Intenta de nuevo.",
       });
     }
 
