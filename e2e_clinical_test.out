@@ -1,0 +1,38 @@
+--- signup customer (ignore if already exists)
+{"error":"El correo ya está registrado"}--- signup admin (legacy email) (ignore if already exists)
+{"error":"El correo ya está registrado"}--- signin customer
+{"token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5N2JjYTE1MWM0NTQ4ZmRhYThkN2RjNyIsImlhdCI6MTc2OTcyMDg1NSwiZXhwIjoxNzcwMzI1NjU1fQ.Ar9H3KZKyUfnlsyaa8ubMVTkhtJlbePfbyeRUq3pxck","user":{"id":"697bca151c4548fdaa8d7dc7","email":"customer_test@example.com","name":"Customer Test","role":"customer"}}customer id=697bca151c4548fdaa8d7dc7
+--- signin admin
+{"error":"Credenciales inválidas"}admin token present=yes
+--- customer GET /users/clinical-history (should return userEditable only)
+{"clinicalHistory":{"userEditable":{"allergies":"","currentMedications":"","spaPreferences":{"goal":"relajacion","pressure":"media","favoriteTreatments":[],"preferredAromas":[],"sensitiveZones":[]}},"updatedAt":null}}\n--- customer PUT /users/clinical-history (set allergies + preferredAromas)
+{"ok":true,"clinicalHistory":{"userEditable":{"allergies":"latex","currentMedications":"","spaPreferences":{"goal":"relajacion","pressure":"media","favoriteTreatments":[],"preferredAromas":["Lavanda","C�tricos"],"sensitiveZones":[]}},"updatedAt":"2026-01-29T21:07:35.590Z"}}\n--- customer PUT attempting staffOnly injection (should be ignored)
+{"ok":true,"clinicalHistory":{"userEditable":{"allergies":"latex","currentMedications":"","spaPreferences":{"goal":"relajacion","pressure":"media","favoriteTreatments":[],"preferredAromas":["Lavanda","C�tricos"],"sensitiveZones":[]}},"updatedAt":"2026-01-29T21:07:35.635Z"}}\n--- admin GET /admin/users/:id/clinical-history (should include staffOnly)
+{"error":"No token provided"}\n--- admin PUT staffOnly.internalNotes + medicalConditions.hypertension
+{"error":"No token provided"}\n--- customer GET again (should still NOT expose staffOnly)
+{"clinicalHistory":{"userEditable":{"allergies":"latex","currentMedications":"","spaPreferences":{"goal":"relajacion","pressure":"media","favoriteTreatments":[],"preferredAromas":["Lavanda","C�tricos"],"sensitiveZones":[]}},"updatedAt":"2026-01-29T21:07:35.635Z"}}\n--- admin GET again (should show staffOnly persisted)
+{"error":"No token provided"}\n--- backend_test.log tail (debug)
+node:events:496
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use :::4001
+    at Server.setupListenHandle [as _listen2] (node:net:1940:16)
+    at listenInCluster (node:net:1997:12)
+    at Server.listen (node:net:2102:7)
+    at Function.listen (C:\Users\zynco\web_lotus\web-lotus-backend\node_modules\express\lib\application.js:635:24)
+    at C:\Users\zynco\web_lotus\web-lotus-backend\index.js:20:9
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1976:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+  code: 'EADDRINUSE',
+  errno: -4091,
+  syscall: 'listen',
+  address: '::',
+  port: 4001
+}
+
+Node.js v22.18.0
+
+\nDONE

@@ -2,6 +2,35 @@ const mongoose = require("mongoose");
 
 const { Schema } = mongoose;
 
+const clinicalHistorySchema = new Schema(
+  {
+    userEditable: {
+      allergies: { type: String, default: "" },
+      currentMedications: { type: String, default: "" },
+      spaPreferences: {
+        goal: { type: String, default: "relajacion" },
+        pressure: { type: String, default: "media" },
+        favoriteTreatments: { type: [String], default: [] },
+        preferredAromas: { type: [String], default: [] },
+        sensitiveZones: { type: [String], default: [] },
+      },
+    },
+    staffOnly: {
+      medicalConditions: {
+        pregnant: { type: Boolean, default: false },
+        diabetes: { type: Boolean, default: false },
+        hypertension: { type: Boolean, default: false },
+        heartProblems: { type: Boolean, default: false },
+        recentInjuries: { type: Boolean, default: false },
+        migraine: { type: Boolean, default: false },
+      },
+      internalNotes: { type: String, default: "" },
+    },
+    updatedAt: { type: Date, default: null },
+  },
+  { _id: false },
+);
+
 const userSchema = new Schema(
   {
     email: {
@@ -30,6 +59,15 @@ const userSchema = new Schema(
     },
     birthdate: {
       type: String,
+    },
+    role: {
+      type: String,
+      enum: ["customer", "staff", "admin"],
+      default: "customer",
+    },
+    clinicalHistory: {
+      type: clinicalHistorySchema,
+      default: () => ({}),
     },
     appointmentsCount: {
       type: Number,

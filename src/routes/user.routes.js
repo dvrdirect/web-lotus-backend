@@ -55,7 +55,17 @@ router.post("/signin", async (req, res) => {
       return res.status(401).json({ error: "Credenciales inválidas" });
     const JWT_SECRET = process.env.JWT_SECRET || "dev_secret";
     const token = jwt.sign({ id: user._id }, JWT_SECRET, { expiresIn: "7d" });
-    res.json({ token });
+    res.json({
+      token,
+      user: {
+        id: user._id,
+        email: user.email,
+        name: user.name,
+        phone: user.phone,
+        birthdate: user.birthdate,
+        role: user.role || "customer",
+      },
+    });
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
@@ -65,8 +75,8 @@ const auth = require("../middleware/auth");
 
 // GET: información del usuario conectado
 router.get("/me", auth, (req, res) => {
-  const { email, name, phone, birthdate } = req.user;
-  res.json({ email, name, phone, birthdate });
+  const { email, name, phone, birthdate, role } = req.user;
+  res.json({ email, name, phone, birthdate, role: role || "customer" });
 });
 
 // PUT: actualizar datos básicos del usuario conectado

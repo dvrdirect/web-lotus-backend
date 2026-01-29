@@ -7,6 +7,7 @@ const EMAIL_USER = process.env.EMAIL_USER || "soporte@spalotus.mx";
 const EMAIL_PASS = process.env.EMAIL_PASS;
 const EMAIL_TLS_INSECURE =
   String(process.env.EMAIL_TLS_INSECURE || "false") === "true";
+const EMAIL_DISABLED = String(process.env.EMAIL_DISABLED || "false") === "true";
 
 if (!EMAIL_PASS) {
   console.error("❌ EMAIL_PASS no está configurado en el entorno");
@@ -41,6 +42,9 @@ async function ensureTransporterVerified() {
  */
 async function sendNewUserAlert(user) {
   try {
+    if (EMAIL_DISABLED) {
+      return;
+    }
     if (!EMAIL_USER || !EMAIL_PASS) {
       throw new Error("EMAIL_USER o EMAIL_PASS no configurados");
     }

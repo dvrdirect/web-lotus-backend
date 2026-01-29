@@ -4,6 +4,108 @@ const auth = require("../middleware/auth");
 const isAdmin = require("../middleware/isAdmin");
 const { User, Reservation } = require("../models");
 
+const normalizeString = (value) => {
+  if (value === undefined) return undefined;
+  if (value === null) return "";
+  return String(value);
+};
+
+const normalizeBoolean = (value) => {
+  if (value === undefined) return undefined;
+  return Boolean(value);
+};
+
+const normalizeStringArray = (value) => {
+  if (value === undefined) return undefined;
+  if (!Array.isArray(value)) return undefined;
+  return value
+    .map((v) => (v === null || v === undefined ? "" : String(v)))
+    .map((v) => v.trim())
+    .filter(Boolean);
+};
+
+const ensureClinicalHistoryDefaults = (user) => {
+  if (!user.clinicalHistory) user.clinicalHistory = {};
+  if (!user.clinicalHistory.userEditable)
+    user.clinicalHistory.userEditable = {};
+  if (!user.clinicalHistory.userEditable.spaPreferences) {
+    user.clinicalHistory.userEditable.spaPreferences = {};
+  }
+  if (!user.clinicalHistory.staffOnly) user.clinicalHistory.staffOnly = {};
+  if (!user.clinicalHistory.staffOnly.medicalConditions) {
+    user.clinicalHistory.staffOnly.medicalConditions = {};
+  }
+};
+
+const pickAdminPatch = (body) => {
+  const src = body && typeof body === "object" ? body : {};
+  const patch = {};
+
+  if (src.userEditable && typeof src.userEditable === "object") {
+    const ue = src.userEditable;
+    const uePatch = {};
+
+    const allergies = normalizeString(ue.allergies);
+    if (allergies !== undefined) uePatch.allergies = allergies;
+
+    const currentMedications = normalizeString(ue.currentMedications);
+    if (currentMedications !== undefined)
+      uePatch.currentMedications = currentMedications;
+
+    const spaSrc =
+      ue.spaPreferences && typeof ue.spaPreferences === "object"
+        ? ue.spaPreferences
+        : {};
+    const spaPatch = {};
+    const goal = normalizeString(spaSrc.goal);
+    if (goal !== undefined) spaPatch.goal = goal;
+    const pressure = normalizeString(spaSrc.pressure);
+    if (pressure !== undefined) spaPatch.pressure = pressure;
+    const favoriteTreatments = normalizeStringArray(spaSrc.favoriteTreatments);
+    if (favoriteTreatments !== undefined)
+      spaPatch.favoriteTreatments = favoriteTreatments;
+    const preferredAromas = normalizeStringArray(spaSrc.preferredAromas);
+    if (preferredAromas !== undefined)
+      spaPatch.preferredAromas = preferredAromas;
+    const sensitiveZones = normalizeStringArray(spaSrc.sensitiveZones);
+    if (sensitiveZones !== undefined) spaPatch.sensitiveZones = sensitiveZones;
+
+    if (Object.keys(spaPatch).length) uePatch.spaPreferences = spaPatch;
+    if (Object.keys(uePatch).length) patch.userEditable = uePatch;
+  }
+
+  if (src.staffOnly && typeof src.staffOnly === "object") {
+    const so = src.staffOnly;
+    const soPatch = {};
+
+    const internalNotes = normalizeString(so.internalNotes);
+    if (internalNotes !== undefined) soPatch.internalNotes = internalNotes;
+
+    const mcSrc =
+      so.medicalConditions && typeof so.medicalConditions === "object"
+        ? so.medicalConditions
+        : {};
+    const mcPatch = {};
+    const pregnant = normalizeBoolean(mcSrc.pregnant);
+    if (pregnant !== undefined) mcPatch.pregnant = pregnant;
+    const diabetes = normalizeBoolean(mcSrc.diabetes);
+    if (diabetes !== undefined) mcPatch.diabetes = diabetes;
+    const hypertension = normalizeBoolean(mcSrc.hypertension);
+    if (hypertension !== undefined) mcPatch.hypertension = hypertension;
+    const heartProblems = normalizeBoolean(mcSrc.heartProblems);
+    if (heartProblems !== undefined) mcPatch.heartProblems = heartProblems;
+    const recentInjuries = normalizeBoolean(mcSrc.recentInjuries);
+    if (recentInjuries !== undefined) mcPatch.recentInjuries = recentInjuries;
+    const migraine = normalizeBoolean(mcSrc.migraine);
+    if (migraine !== undefined) mcPatch.migraine = migraine;
+
+    if (Object.keys(mcPatch).length) soPatch.medicalConditions = mcPatch;
+    if (Object.keys(soPatch).length) patch.staffOnly = soPatch;
+  }
+
+  return patch;
+};
+
 // GET /api/admin/user?email=... or ?id=...
 router.get("/user", auth, isAdmin, async (req, res) => {
   try {
@@ -224,5 +326,163 @@ router.delete("/reservations/:id", auth, isAdmin, async (req, res) => {
     return res.status(500).json({ error: err.message });
   }
 });
+
+// --- Clinical history (admin/staff) ---
+
+// GET /api/admin/users/:userId/clinical-history
+router.get(
+  "/users/:userId/clinical-history",
+  auth,
+  isAdmin,
+  async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const user = await User.findById(userId).select(
+        "clinicalHistory name email",
+      );
+      if (!user)
+        return res.status(404).json({ error: "Usuario no encontrado" });
+
+      ensureClinicalHistoryDefaults(user);
+
+      return res.json({
+        user: { id: user._id, name: user.name, email: user.email },
+        clinicalHistory: {
+          userEditable: {
+            allergies: user.clinicalHistory.userEditable.allergies || "",
+            currentMedications:
+              user.clinicalHistory.userEditable.currentMedications || "",
+            spaPreferences: {
+              goal:
+                user.clinicalHistory.userEditable.spaPreferences.goal ||
+                "relajacion",
+              pressure:
+                user.clinicalHistory.userEditable.spaPreferences.pressure ||
+                "media",
+              favoriteTreatments:
+                user.clinicalHistory.userEditable.spaPreferences
+                  .favoriteTreatments || [],
+              preferredAromas:
+                user.clinicalHistory.userEditable.spaPreferences
+                  .preferredAromas || [],
+              sensitiveZones:
+                user.clinicalHistory.userEditable.spaPreferences
+                  .sensitiveZones || [],
+            },
+          },
+          staffOnly: {
+            medicalConditions: {
+              pregnant: Boolean(
+                user.clinicalHistory.staffOnly.medicalConditions.pregnant,
+              ),
+              diabetes: Boolean(
+                user.clinicalHistory.staffOnly.medicalConditions.diabetes,
+              ),
+              hypertension: Boolean(
+                user.clinicalHistory.staffOnly.medicalConditions.hypertension,
+              ),
+              heartProblems: Boolean(
+                user.clinicalHistory.staffOnly.medicalConditions.heartProblems,
+              ),
+              recentInjuries: Boolean(
+                user.clinicalHistory.staffOnly.medicalConditions.recentInjuries,
+              ),
+              migraine: Boolean(
+                user.clinicalHistory.staffOnly.medicalConditions.migraine,
+              ),
+            },
+            internalNotes: user.clinicalHistory.staffOnly.internalNotes || "",
+          },
+          updatedAt: user.clinicalHistory.updatedAt || null,
+        },
+      });
+    } catch (err) {
+      return res.status(500).json({ error: err.message });
+    }
+  },
+);
+
+// PUT /api/admin/users/:userId/clinical-history
+router.put(
+  "/users/:userId/clinical-history",
+  auth,
+  isAdmin,
+  async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const patch = pickAdminPatch(req.body);
+
+      const user = await User.findById(userId).select("clinicalHistory");
+      if (!user)
+        return res.status(404).json({ error: "Usuario no encontrado" });
+
+      ensureClinicalHistoryDefaults(user);
+
+      if (patch.userEditable) {
+        const ue = patch.userEditable;
+        if (ue.allergies !== undefined)
+          user.clinicalHistory.userEditable.allergies = ue.allergies;
+        if (ue.currentMedications !== undefined) {
+          user.clinicalHistory.userEditable.currentMedications =
+            ue.currentMedications;
+        }
+        if (ue.spaPreferences) {
+          const spa = ue.spaPreferences;
+          if (spa.goal !== undefined)
+            user.clinicalHistory.userEditable.spaPreferences.goal = spa.goal;
+          if (spa.pressure !== undefined)
+            user.clinicalHistory.userEditable.spaPreferences.pressure =
+              spa.pressure;
+          if (spa.favoriteTreatments !== undefined) {
+            user.clinicalHistory.userEditable.spaPreferences.favoriteTreatments =
+              spa.favoriteTreatments;
+          }
+          if (spa.preferredAromas !== undefined) {
+            user.clinicalHistory.userEditable.spaPreferences.preferredAromas =
+              spa.preferredAromas;
+          }
+          if (spa.sensitiveZones !== undefined) {
+            user.clinicalHistory.userEditable.spaPreferences.sensitiveZones =
+              spa.sensitiveZones;
+          }
+        }
+      }
+
+      if (patch.staffOnly) {
+        const so = patch.staffOnly;
+        if (so.internalNotes !== undefined)
+          user.clinicalHistory.staffOnly.internalNotes = so.internalNotes;
+        if (so.medicalConditions) {
+          const mc = so.medicalConditions;
+          if (mc.pregnant !== undefined)
+            user.clinicalHistory.staffOnly.medicalConditions.pregnant =
+              mc.pregnant;
+          if (mc.diabetes !== undefined)
+            user.clinicalHistory.staffOnly.medicalConditions.diabetes =
+              mc.diabetes;
+          if (mc.hypertension !== undefined)
+            user.clinicalHistory.staffOnly.medicalConditions.hypertension =
+              mc.hypertension;
+          if (mc.heartProblems !== undefined)
+            user.clinicalHistory.staffOnly.medicalConditions.heartProblems =
+              mc.heartProblems;
+          if (mc.recentInjuries !== undefined)
+            user.clinicalHistory.staffOnly.medicalConditions.recentInjuries =
+              mc.recentInjuries;
+          if (mc.migraine !== undefined)
+            user.clinicalHistory.staffOnly.medicalConditions.migraine =
+              mc.migraine;
+        }
+      }
+
+      user.clinicalHistory.updatedAt = new Date();
+      await user.save();
+
+      return res.json({ ok: true, updatedAt: user.clinicalHistory.updatedAt });
+    } catch (err) {
+      return res.status(400).json({ error: err.message });
+    }
+  },
+);
 
 module.exports = router;

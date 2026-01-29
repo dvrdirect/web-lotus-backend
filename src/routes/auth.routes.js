@@ -53,10 +53,12 @@ router.post("/google", async (req, res) => {
 
     return res.json({
       user: {
+        id: user._id,
         email: user.email,
         name: user.name,
         phone: user.phone,
         birthdate: user.birthdate,
+        role: user.role || "customer",
       },
       token,
     });
